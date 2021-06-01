@@ -11,7 +11,6 @@ using namespace std;
 
 bool draw=true;
 string DrawBuffer="";
-char Getch;
 int aX=0;
 int aY=0;
 int dX=1;
@@ -29,18 +28,22 @@ bool Pause=false;
 string ScoreBefore="";
 string Before="";
 string After="";
+char g[3]{0};
 
 struct termios old;
 
 void Input(){
-	while(true){Getch=getchar();}
+	while(true){
+		read(0,&g,3);
+		if(g[0]==27 && g[1]=='[' && 64<g[2] && g[2]<69){g[0]=g[2]-48;}
+	}
 }
 
 void resizeHandler(int sig){
 	struct winsize w;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 	Before=string((w.ws_col-sX*2-2)/2,' ');
-	After=string((w.ws_row-sY-2)/2,'\n');
+	After=string((w.ws_row-sY-2)/2+1,'\n');
 	ScoreBefore="";
 	for(int i=0; i<(sX-11)/2; i++){ScoreBefore+="  ";}
 	draw=true;
@@ -60,14 +63,11 @@ int main(int argc, const char* argv[]) {
 		if(argc>2){
 			cout<<"Too many arguments"<<endl;
 			return 0;
-		} else if(string(argv[1])=="-h" | string(argv[1])=="--help") {
+		} else if(string(argv[1])=="-h" || string(argv[1])=="--help") {
 			cout<<
 			"Simple Snake Game\n"
 			"  Controls:\n"
-			"    n - Turn to left\n"
-			"    e - Turn down\n"
-			"    i - Turn up\n"
-			"    o - Turn to right\n"
+			"    h/j/k/l, Arrow Left/Down/Up/Right, n/e/i/o - Turn left/down/up/right\n"
 			"    p,ESC - Pause/Unpause\n"
 			"    SPACE - Unpause/Restart game after game over"<<endl;
 			return 0;
@@ -96,9 +96,11 @@ int main(int argc, const char* argv[]) {
 	aY=rand()%sY;
 
 	thread(Input).detach();
+	system("clear");
+	cout<<"\e[1H\e[?25l";
 	while(true){
 		if(GameOver){
-			if(Getch==' '){
+			if(g[0]==' '){
 				X=sX/2;
 				Y=sY/2;
 				dX=1;
@@ -114,7 +116,7 @@ int main(int argc, const char* argv[]) {
 			}
 		} else {
 			if(Pause){
-				if(Getch==' ' | Getch=='\033' | Getch=='p'){Pause=false;}
+				if(g[0]==' ' || g[0]=='\033' || g[0]=='p'){Pause=false;}
 			} else {
 				X+=dX;
 				Y+=dY;
@@ -142,23 +144,27 @@ int main(int argc, const char* argv[]) {
 				}
 
 				draw=true;
-				if(!GameOver){
-					switch(Getch) {//Input
-						case 'n': if(dX!=1){dX=-1; dY=0;} break;
-						case 'e': if(dY!=-1){dX=0; dY=1;} break;
-						case 'i': if(dY!=1){dX=0; dY=-1;} break;
-						case 'o': if(dX!=-1){dX=1; dY=0;} break;
-						case '\033': Pause=!Pause;draw=true; break;
-						case 'p': Pause=!Pause;draw=true; break;
-					}//Input
-				}
+				if(!GameOver){//Input
+					if(g[0]=='h' || g[0]=='n' || g[0]==20){
+						if(dX!=1){dX=-1;dY=0;}
+					} else if(g[0]=='j' || g[0]=='e' || g[0]==18){
+						if(dY!=-1){dX=0;dY=1;}
+					} else if(g[0]=='k' || g[0]=='i' || g[0]==17){
+						if(dY!=1){dX=0;dY=-1;}
+					} else if(g[0]=='l' || g[0]=='o' || g[0]==19){
+						if(dX!=-1){dX=1;dY=0;}
+					} else if(g[0]=='p' || g[0]=='\033'){
+						Pause=!Pause;draw=true;
+					}
+					
+				}//Input
 			}
 
-			if(Getch){Getch=0;}
+			if(g[0]!=0){g[0]=0;}
 		}
 
 		if(draw){//Draw
-			DrawBuffer="\e[?25l";
+			DrawBuffer="";
 
 			for(int i=0; i<sY; i++){
 				if(Y==i && X==-1){DrawBuffer+=Before+"\e[47m \e[41m \e[0m";
@@ -167,12 +173,15 @@ int main(int argc, const char* argv[]) {
 				if(GameOver | Pause){
 					string tmp="";
 					if(i==sY/2){
+						DrawBuffer+="\e[30;47m";
 						if(GameOver){
-							for(int j=0; j<(sX-5)/2; j++){tmp+="  ";}
-							DrawBuffer+="\e[30;47m"+tmp+" GAME OVER  "+tmp;
+							tmp=string((sX-6),' ');
+							//for(int j=0; j<(sX-5)/2; j++){tmp+="  ";}
+							DrawBuffer+=tmp+" GAME OVER  "+tmp;
 						} else if(Pause){
-							for(int j=0; j<(sX-6)/2; j++){tmp+="  ";}
-							DrawBuffer+="\e[30;47m"+tmp+"GAME PAUSED "+tmp;
+							tmp=string((sX-6),' ');
+							//for(int j=0; j<(sX-6)/2; j++){tmp+="  ";}
+							DrawBuffer+=tmp+"GAME PAUSED "+tmp;
 						}
 						if(Y==i && X==sX){DrawBuffer+="\e[41m \e[47m \e[0m\n";
 						} else{DrawBuffer+="\e[47m  \e[0m\n";}
@@ -220,7 +229,7 @@ int main(int argc, const char* argv[]) {
 					if(i==X){ tmp+="\e[31;47m▄▄";} else {tmp+="  ";}
 				}
 				tmp="\e[47m  "+tmp+"\e[47m  \e[0m";
-				DrawBuffer='\n'+After+Before+"\e[0;47m"+tmp+"\e[0m\n"+ DrawBuffer
+				DrawBuffer=After+Before+"\e[0;47m"+tmp+"\e[0m\n"+ DrawBuffer
 						   +Before+"\e[47m"+Top;
 
 			}else if(Y==sY){
@@ -229,11 +238,11 @@ int main(int argc, const char* argv[]) {
 					if(i==X){tmp+="\e[31;47m▀▀";} else {tmp+="  ";}
 				}
 				tmp="\e[47m  "+tmp+"\e[47m  \e[0m";
-				DrawBuffer='\n'+After+Before+"\e[47m"+Top+"\e[0m\n"+ DrawBuffer
+				DrawBuffer=After+Before+"\e[47m"+Top+"\e[0m\n"+ DrawBuffer
 						   +Before+"\e[47m"+tmp;
 
 			}else{
-				DrawBuffer='\n'+After+Before+"\e[0;47m"+Top+"\e[0m\n"+ DrawBuffer
+				DrawBuffer=After+Before+"\e[0;47m"+Top+"\e[0m\n"+ DrawBuffer
 						   +Before+"\e[47m"+Top;
 			}
 
