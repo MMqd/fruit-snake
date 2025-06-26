@@ -7,6 +7,10 @@
 #include <signal.h>
 #include <thread>
 
+//Used for getting user's home directory
+#include  <sys/types.h>
+#include  <pwd.h>
+
 using namespace std;
 
 bool draw=true;
@@ -29,6 +33,9 @@ string ScoreBefore="";
 string Before="";
 string After="";
 char g[3]{0};
+
+//Gets the user's local directory to store highscore
+const string highscoreFile = string(getpwuid(getuid())->pw_dir) + "/.local/share/fruit-snake highscore";
 
 struct termios old;
 
@@ -88,7 +95,7 @@ int main(int argc, const char* argv[]) {
 	current.c_lflag &= ~ECHO; /* set no echo mode */
 	tcsetattr(0, TCSANOW, &current);
 
-	ifstream Tmp("HighScore");
+	ifstream Tmp(highscoreFile);
 	Tmp>>HighScore;
 	Tmp.close();
 
@@ -128,7 +135,7 @@ int main(int argc, const char* argv[]) {
 				if(X==-1 | Y==-1 | X==sX | Y==sY | Tail[X][Y]>0){
 					GameOver=true;
 					if(Score>HighScore){
-						ofstream Tmp("HighScore");
+						ofstream Tmp(highscoreFile);
 						HighScore=Score;
 						Tmp<<HighScore;
 						Tmp.close();
