@@ -65,7 +65,7 @@ int main(int argc, const char* argv[]) {
 			return 0;
 		} else if(string(argv[1])=="-h" || string(argv[1])=="--help") {
 			cout<<
-			"Simple Snake Game\n"
+			"Simple Fruit Snake Game\n"
 			"  Controls:\n"
 			"    h/j/k/l, Arrow Left/Down/Up/Right, n/e/i/o - Turn left/down/up/right\n"
 			"    p,ESC - Pause/Unpause\n"
